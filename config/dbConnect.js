@@ -1,6 +1,6 @@
 // dbConnect.js or wherever you establish MongoDB connection
 
-const mongoose = require("mongoose");
+const { default: mongoose } = require("mongoose");
 
 const dbConnect = async () => {
   try {
