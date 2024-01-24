@@ -19,7 +19,7 @@ dbConnect();
 const morgan = require("morgan");
 
 
-
+app.use(express.json());
 app.use(morgan("dev"));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -33,8 +33,12 @@ app.use("/api/brand", brandRouter);
 app.use("/api/color", colorRouter);
 app.use("/api/enquiry", enqRouter);
 app.use("/api/coupon", couponRouter);
+app.get("/", (req, res) => {
+  res.send("Hello, World!");
+});
 app.use(notFound);
 app.use(errorHandler);
+
 app.listen(PORT, () => {
     console.log(`Server is running at port ${PORT}`);
 });
