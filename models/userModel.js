@@ -3,55 +3,55 @@ const bcrypt= require("bcrypt");
 const crypto= require("crypto");
 
 // Declare the Schema of the Mongo model
-var userSchema = new mongoose.Schema({
-    firstname:{
-        type:String,
-        required:  true,
+var userSchema = new mongoose.Schema(
+  {
+    firstname: {
+      type: String,
+      required: true,
     },
-    lastname:{
-        type:String,
-        required:  true,
+    lastname: {
+      type: String,
+      required: true,
     },
-    email:{
-        type:String,
-        required: true,
-        unique: true,
+    email: {
+      type: String,
+      required: true,
+      unique: true,
     },
-    mobile:{
-        type:String,
-        required: true,
-        unique: true,
+    mobile: {
+      type: String,
+      required: true,
+      unique: true,
     },
-    password:{
-        type:String,
-        required: true,
+    password: {
+      type: String,
+      required: true,
     },
-    role:{
-        type:String,
-        default:"user",
+    role: {
+      type: String,
+      default: "user",
     },
-    isBlocked:{
-        type:Boolean,
-        default:false,
-    },
-    cart:{
-        type: Array,
-        default: [],
+    isBlocked: {
+      type: Boolean,
+      default: false,
     },
     address: {
-        type:String,
+      type: String,
+    },
+    city: {
+      type: String,
     },
     wishlist: [{ type: mongoose.Schema.Types.ObjectId, ref: "Product" }],
     refreshToken: {
-        type:String,
+      type: String,
     },
     passwordChangedAt: Date,
     passwordResetToken: String,
     passwordResetExpires: Date,
-    }, 
-    {
-        timestamps: true,
-    }
+  },
+  {
+    timestamps: true,
+  }
 );
 
 

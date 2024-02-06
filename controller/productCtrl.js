@@ -62,6 +62,17 @@ const getaProduct = asyncHandler(async (req, res) => {
     }
 });
 
+const getProductbySupplier = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  // validateMongoDbId(id);
+  try {
+    const findProduct = await Product.find({ supplierID: id });
+    res.json(findProduct);
+  } catch (error) {
+    throw new Error(error);
+  }
+});
+
 // Get All Products
 
 const getAllProduct = asyncHandler(async (req, res) => {
@@ -155,90 +166,124 @@ const rating = asyncHandler(async (req, res) => {
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
-  
+
       const alreadyRated = product.ratings.find(
         (rating) =>
-          rating.postedby && rating.postedby.toString() === (_id && _id.toString())
+          rating.postedby &&
+          rating.postedby.toString() === (_id && _id.toString())
       );
-  
+
       if (alreadyRated) {
         // Update the existing rating's star and comment
-        alreadyRated.star = star;
-        alreadyRated.comment = comment;
-        await product.save();
+        const updateRating = await Product.updateOne(
+          {
+            ratings: { $elemMatch: alreadyRated }, // Find the user's reputation with ratings
+          },
+          {
+            $set: { "ratings.$.star": star, "ratings.$.comment": comment }, //Set the value again
+          },
+          {
+            new: true,
+          }
+        );
       } else {
         // Add a new rating if the user hasn't rated the product yet
-        product.ratings.push({
-          star: star,
-          comment: comment,
-          postedby: _id,
-        });
-        await product.save();
+        const rateProduct = await Product.findByIdAndUpdate(
+          prodId,
+          {
+            $push: {
+              // them danh gia
+              ratings: {
+                star: star,
+                comment: comment,
+                postedby: _id,
+              },
+            },
+          },
+          {
+            new: true,
+          }
+        );
       }
-  
+
       const updatedProduct = await Product.findById(prodId);
       if (!updatedProduct) {
         return res.status(404).json({ message: "Product not found" });
       }
-  
-      const totalRating = updatedProduct.ratings.length;
-      const ratingsum = updatedProduct.ratings.reduce((acc, item) => acc + item.star, 0);
-      const actualRating = totalRating > 0 ? Math.round(ratingsum / totalRating) : 0;
-  
-      updatedProduct.totalrating = actualRating;
-      await updatedProduct.save();
-  
-      res.json(updatedProduct);
+
+      const getallratings = await Product.findById(prodId);
+      let totalRating = getallratings.ratings.length; // Lay the total number of famous people
+      let ratingsum = getallratings.ratings
+        .map((item) => item.star) // What is the difference between the stars and the stars?
+        .reduce((prev, curr) => prev + curr, 0); // Lay the total number of famous stars, 0 is the initial value
+      let actualRating = Math.round(ratingsum / totalRating);
+      let finalproduct = await Product.findByIdAndUpdate(
+        prodId,
+        {
+          totalrating: actualRating,
+        },
+        { new: true }
+      );
+      res.json(finalproduct);
     } catch (error) {
       res.status(500).json({ message: "Internal Server Error" });
     }
 });
 
-// Upload images of the product
-const uploadImages = asyncHandler(async (req, res) => {
-    try {
-        if (!req.files || !req.files.length) {
-            return res.status(400).json({ message: 'No files uploaded' });
-        }
-        const uploader = (path) => cloudinaryUploadImg(path, "images");
-        const urls = [];
-        const files = req.files;
-        for (const file of files) {
-            const { path } = file;
-            const newpath = await uploader(path);
-            urls.push(newpath);
+// // Upload images of the product
+// const uploadImages = asyncHandler(async (req, res) => {
+//     try {
+//         if (!req.files || !req.files.length) {
+//             return res.status(400).json({ message: 'No files uploaded' });
+//         }
+//         const uploader = (path) => cloudinaryUploadImg(path, "images");
+//         const urls = [];
+//         const files = req.files;
+//         for (const file of files) {
+//             const { path } = file;
+//             const newpath = await uploader(path);
+//             urls.push(newpath);
 
-            // Asynchronously delete the file
-            fs.unlink(path, (err) => {
-                if (err) {
-                    console.error('Error deleting file:', err);
-                } else {
-                    console.log('File deleted successfully');
-                }
-            });
-        }
-        const images = urls.map((file) => {
-            return file;
-        });
-        res.json(images);
-    } catch (error) {
-        throw new Error(error);
-    }
-});
+//             // Asynchronously delete the file
+//             fs.unlink(path, (err) => {
+//                 if (err) {
+//                     console.error('Error deleting file:', err);
+//                 } else {
+//                     console.log('File deleted successfully');
+//                 }
+//             });
+//         }
+//         const images = urls.map((file) => {
+//             return file;
+//         });
+//         res.json(images);
+//     } catch (error) {
+//         throw new Error(error);
+//     }
+// });
 
-// Delete images of the Product
-const deleteImages = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    try {
-        const deleted = cloudinaryDeleteImg(id, "images");
-        res.json({ message: "Deleted" });
+// // Delete images of the Product
+// const deleteImages = asyncHandler(async (req, res) => {
+//     const { id } = req.params;
+//     try {
+//         const deleted = cloudinaryDeleteImg(id, "images");
+//         res.json({ message: "Deleted" });
 
-    } catch (error) {
-        throw new Error(error);
-    }
-});
-
-
+//     } catch (error) {
+//         throw new Error(error);
+//     }
+// });
 
 
-module.exports = { createProduct, getaProduct, getAllProduct, updateProduct, deleteProduct, addToWishlist, rating, uploadImages, deleteImages, };
+
+
+module.exports = {
+  createProduct,
+  getaProduct,
+  getAllProduct,
+  updateProduct,
+  deleteProduct,
+  addToWishlist,
+  rating,
+  getProductbySupplier,
+};
