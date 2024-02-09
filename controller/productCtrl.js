@@ -6,72 +6,82 @@ const validateMongoDbId = require("../utils/validateMongodbId");
 const fs = require("fs");
 const { cloudinaryUploadImg, cloudinaryDeleteImg } = require("../utils/cloudinary");
 
+
 // Create a New Product
-const createProduct = asyncHandler(async (req, res) => {
-    try {
-        if (req.body.title) {
-            req.body.slug = slugify(req.body.title);
-        }
-        const newProduct = await Product.create(req.body);
-        res.json(newProduct);
-    } catch (error) {
-        throw new Error(error);
+// Create a New Product
+const createProduct = asyncHandler(async (req, res, next) => {
+  try {
+    // Validate request body
+    if (!req.body.title) {
+      return res.status(400).json({ error: 'Title is required' });
     }
+
+    // Validate supplierID
+    const { supplierID } = req.body;
+    if (!supplierID) {
+      return res.status(400).json({ error: 'Supplier ID is required' });
+    }
+    // Check if the supplier exists
+    const supplier = await Supplier.findById(supplierID);
+    if (!supplier) {
+      return res.status(400).json({ error: 'Invalid supplier ID' });
+    }
+
+    // Generate slug
+    req.body.slug = slugify(req.body.title);
+
+    // Create product
+    const newProduct = await Product.create(req.body);
+
+    // Send response
+    res.json(newProduct);
+  } catch (error) {
+    // Pass error to error-handling middleware
+    next(error);
+  }
 });
+
+
+
+
+
 
 // Update the Product
 const updateProduct = asyncHandler(async (req, res) => {
-    const { id } = req.params; // Correctly extract 'id' from req.params
-    validateMongoDbId(id);
-    try {
-        if (req.body.title) {
-            req.body.slug = slugify(req.body.title);
-        }
-        const updateProduct = await Product.findOneAndUpdate({ _id: id }, req.body, {
-            new: true,
-        });
-        res.json(updateProduct);
-    } catch (error) {
-        throw new Error(error);
-    }
+  const { id } = req.params;
+  validateMongoDbId(id);
+  if (req.body.title) {
+      req.body.slug = slugify(req.body.title);
+  }
+  const updatedProduct = await Product.findOneAndUpdate({ _id: id }, req.body, {
+      new: true,
+  });
+  res.json(updatedProduct);
 });
 
 // Delete the Product
 const deleteProduct = asyncHandler(async (req, res) => {
-    const { id } = req.params; // Correctly extract 'id' from req.params
-    validateMongoDbId(id);
-    try {
-        const deleteProduct = await Product.findOneAndDelete(id);
-        res.json(deleteProduct);
-    } catch (error) {
-        throw new Error(error);
-    }
+  const { id } = req.params;
+  validateMongoDbId(id);
+  const deletedProduct = await Product.findOneAndDelete({ _id: id });
+  res.json(deletedProduct);
 });
 
-
-// Get the Product
-
+// Get a Product
 const getaProduct = asyncHandler(async (req, res) => {
-    const { id } = req.params;
-    validateMongoDbId(id);
-    try {
-        const findProduct = await Product.findById(id);
-        res.json(findProduct);
-    } catch (error) {
-        throw new Error(error);
-    }
+  const { id } = req.params;
+  validateMongoDbId(id);
+  const product = await Product.findById(id);
+  res.json(product);
 });
 
+// Get Products by Supplier
 const getProductbySupplier = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  // validateMongoDbId(id);
-  try {
-    const findProduct = await Product.find({ supplierID: id });
-    res.json(findProduct);
-  } catch (error) {
-    throw new Error(error);
-  }
+  const products = await Product.find({ supplierID: id });
+  res.json(products);
 });
+
 
 // Get All Products
 
@@ -230,49 +240,53 @@ const rating = asyncHandler(async (req, res) => {
     }
 });
 
-// // Upload images of the product
-// const uploadImages = asyncHandler(async (req, res) => {
-//     try {
-//         if (!req.files || !req.files.length) {
-//             return res.status(400).json({ message: 'No files uploaded' });
-//         }
-//         const uploader = (path) => cloudinaryUploadImg(path, "images");
-//         const urls = [];
-//         const files = req.files;
-//         for (const file of files) {
-//             const { path } = file;
-//             const newpath = await uploader(path);
-//             urls.push(newpath);
+// Upload images of the product
+const uploadImages = asyncHandler(async (req, res) => {
+  try {
+      if (!req.files || !req.files.length) {
+          return res.status(400).json({ message: 'No files uploaded' });
+      }
+      const uploader = (path) => cloudinaryUploadImg(path, "images");
+      const urls = [];
+      const files = req.files;
+      for (const file of files) {
+          const { path } = file;
+          const newpath = await uploader(path);
+          urls.push(newpath);
 
-//             // Asynchronously delete the file
-//             fs.unlink(path, (err) => {
-//                 if (err) {
-//                     console.error('Error deleting file:', err);
-//                 } else {
-//                     console.log('File deleted successfully');
-//                 }
-//             });
-//         }
-//         const images = urls.map((file) => {
-//             return file;
-//         });
-//         res.json(images);
-//     } catch (error) {
-//         throw new Error(error);
-//     }
-// });
+          // Asynchronously delete the file
+          fs.unlink(path, (err) => {
+              if (err) {
+                  console.error('Error deleting file:', err);
+              } else {
+                  console.log('File deleted successfully');
+              }
+          });
+      }
+      const images = urls.map((file) => {
+          return file;
+      });
+      res.json(images);
+  } catch (error) {
+      console.error("Error uploading images:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 
-// // Delete images of the Product
-// const deleteImages = asyncHandler(async (req, res) => {
-//     const { id } = req.params;
-//     try {
-//         const deleted = cloudinaryDeleteImg(id, "images");
-//         res.json({ message: "Deleted" });
-
-//     } catch (error) {
-//         throw new Error(error);
-//     }
-// });
+// Delete images of the Product
+const deleteImages = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  try {
+      const deleted = cloudinaryDeleteImg(id, "images");
+      if (!deleted) {
+          return res.status(404).json({ message: "Image not found" });
+      }
+      res.json({ message: "Image deleted successfully" });
+  } catch (error) {
+      console.error("Error deleting image:", error);
+      res.status(500).json({ message: "Internal Server Error" });
+  }
+});
 
 
 
@@ -286,4 +300,6 @@ module.exports = {
   addToWishlist,
   rating,
   getProductbySupplier,
+  uploadImages,
+  deleteImages
 };

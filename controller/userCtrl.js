@@ -323,14 +323,15 @@ const resetPassword = asyncHandler(async(req, res) => {
 // Wishlist
 
 const getWishList = asyncHandler(async (req, res) => {
-    const { _id } = req.user;
-    try {
+  const { _id } = req.user;
+  try {
       const findUser = await User.findById(_id).populate("wishlist");
       res.json(findUser);
-    } catch (error) {
+  } catch (error) {
       throw new Error(error);
-    }
+  }
 });
+
 
 // Cart list
 

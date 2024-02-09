@@ -1,7 +1,7 @@
 const mongoose = require("mongoose"); // Erase if already required
 
 // Declare the Schema of the Mongo model
-var couponSchema = new mongoose.Schema({
+const couponSchema = new mongoose.Schema({
     name:{
         type:String,
         required:true,
@@ -15,6 +15,10 @@ var couponSchema = new mongoose.Schema({
     discount:{
         type:Number,
         required:true,
+    },
+    product: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product' // Make sure it's referencing the correct model
     },
 });
 

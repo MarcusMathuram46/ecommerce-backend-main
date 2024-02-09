@@ -90,9 +90,9 @@ var productSchema = new mongoose.Schema(
     },
     supplierID: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Supplier",
+      ref: 'Supplier',
       required: true,
-    },
+    },    
   },
   { timestamps: true }
 );

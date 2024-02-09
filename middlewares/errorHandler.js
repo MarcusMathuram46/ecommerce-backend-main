@@ -1,5 +1,4 @@
 // not Found
-
 const notFound = (req, res, next) => {
     const error = new Error(`Not Found : ${req.originalUrl}`);
     res.status(404);
@@ -7,18 +6,16 @@ const notFound = (req, res, next) => {
 };
   
 // Error Handler
-  
 const errorHandler = (err, req, res, next) => {
-const statuscode = res.statusCode == 200 ? 500 : res.statusCode;
-res.status(statuscode);
-res.json({
-    status: "fail",
-    message: err?.message,
-    stack: err?.stack,
-});
+    const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+    res.status(statusCode);
+    res.json({
+        status: "fail",
+        message: err.message || "Internal Server Error",
+        stack: process.env.NODE_ENV === "production" ? "🥞" : err.stack,
+        
+    });
 };
-
-
 
 
 module.exports = { errorHandler, notFound };

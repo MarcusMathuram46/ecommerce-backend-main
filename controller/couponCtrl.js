@@ -30,15 +30,29 @@ const createCoupon = asyncHandler(async (req, res) => {
 });
 
 
-// get All Coupons
+// getAllCoupons without populating 'product'
 const getAllCoupons = asyncHandler(async (req, res) => {
   try {
-    const coupons = await Coupon.find().populate("product");
+    const coupons = await Coupon.find();
     res.json(coupons);
   } catch (error) {
-    throw new Error(error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+const getCoupon = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  validateMongoDbId(id);
+  try {
+    const getAcoupon = await Coupon.findById(id);
+    res.json(getAcoupon);
+  } catch (error) {
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+
+
 
 
 // Update a Coupon
@@ -67,17 +81,6 @@ const deleteCoupon = asyncHandler(async (req, res) => {
   }
 });
 
-// Get a specific Coupon
-const getCoupon = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  validateMongoDbId(id);
-  try {
-    const getAcoupon = await Coupon.findById(id).populate("product");
-    res.json(getAcoupon);
-  } catch (error) {
-    throw new Error(error);
-  }
-});
 
 module.exports = {
   createCoupon,

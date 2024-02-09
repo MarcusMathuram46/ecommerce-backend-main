@@ -26,20 +26,42 @@ const uploadPhoto = multer({
   limits: { fileSize: 1000000 },
 });
 
+// Middleware to resize product images
 const productImgResize = async (req, res, next) => {
-  if (!req.files) return next();
-  await Promise.all(
-    req.files.map(async (file) => {
-      await sharp(file.path)
-        .resize(300, 300)
-        .toFormat("jpeg")
-        .jpeg({ quality: 90 })
-        .toFile(`public/images/products/${file.filename}`);
-      fs.unlinkSync(`public/images/products/${file.filename}`);
-    })
-  );
-  next();
+  try {
+    if (!req.files || req.files.length === 0) {
+      return next();
+    }
+
+    await Promise.all(
+      req.files.map(async (file) => {
+        const resizedImagePath = `public/images/products/${file.filename}`;
+        console.log("Resized image path:", resizedImagePath);
+
+        await sharp(file.path)
+          .resize(300, 300)
+          .toFormat("jpeg")
+          .jpeg({ quality: 90 })
+          .toFile(resizedImagePath)
+          .then(() => {
+            console.log("Resized image successfully saved:", resizedImagePath);
+            fs.unlinkSync(file.path);
+          })
+          .catch((error) => {
+            console.error("Error resizing image:", error);
+          });
+      })
+    );
+    next();
+  } catch (error) {
+    console.error("Error resizing image:", error);
+    next(error);
+  }
 };
+
+
+
+
 
 const blogImgResize = async (req, res, next) => {
   if (!req.files) return next();

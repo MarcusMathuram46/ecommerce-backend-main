@@ -3,34 +3,36 @@ const jwt = require("jsonwebtoken");
 const asyncHandler = require("express-async-handler");
 
 const authMiddleware = asyncHandler(async (req, res, next) => {
-    let token;
-    if (req?.headers?.authorization?.startsWith("Bearer ")) {
-        token = req.headers.authorization.split(" ")[1];
-        try {
-            if (token) {
-                const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                const user = await User.findById(decoded?.id);
-                req.user = user;
-                next();
-            }
-        } catch (error) {
-            throw new Error("Not Authorized token expired, please Login again");
+    try {
+        let token;
+        if (!req.headers.authorization || !req.headers.authorization.startsWith("Bearer")) {
+            throw new Error("Unauthorized: No token provided");
         }
-    } else {
-        throw new Error("there is no token attached to header")
-    }
-});
-const isAdmin = asyncHandler(async (req, res, next) => {
-    const { email } = req.user;
-    const adminUser = await User.findOne( { email });
-    if (adminUser.role !== "admin") {
-        throw new Error("You are not an admin")
-    }
-    else {
+        
+        token = req.headers.authorization.split(" ")[1];
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const user = await User.findById(decoded?.id);
+        if (!user) {
+            throw new Error("User not found");
+        }
+        req.user = user; // Attach user to request object
         next();
+    } catch (error) {
+        console.error("Authentication error:", error.message);
+        res.status(401).json({ error: "Unauthorized", message: error.message });
     }
 });
+
+const isAdmin = asyncHandler(async (req, res, next) => {
+    try {
+        if (!req.user || req.user.role !== "admin") {
+            throw new Error("Unauthorized: You are not an admin");
+        }
+        next();
+    } catch (error) {
+        console.error("Authorization error:", error.message);
+        res.status(403).json({ error: "Forbidden", message: error.message }); // 403 Forbidden status code for authorization errors
+    }
+});
+
 module.exports = { authMiddleware, isAdmin };
-
-
-
