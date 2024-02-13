@@ -1,10 +1,13 @@
 const Product = require("../models/productModel");
 const User = require("../models/userModel");
+const Supplier = require("../models/supplierModel");
 const asyncHandler = require("express-async-handler");
 const slugify = require("slugify");
 const validateMongoDbId = require("../utils/validateMongodbId");
 const fs = require("fs");
 const { cloudinaryUploadImg, cloudinaryDeleteImg } = require("../utils/cloudinary");
+const mongoose = require('mongoose');
+
 
 
 // Create a New Product
@@ -17,14 +20,20 @@ const createProduct = asyncHandler(async (req, res, next) => {
     }
 
     // Validate supplierID
+    
     const { supplierID } = req.body;
     if (!supplierID) {
       return res.status(400).json({ error: 'Supplier ID is required' });
     }
-    // Check if the supplier exists
+    // Validate the format of supplierID
+    if (!mongoose.Types.ObjectId.isValid(supplierID)) {
+      return res.status(400).json({ error: 'Invalid supplier ID format' });
+    }
+
+    // Query the Supplier model with the validated supplierID
     const supplier = await Supplier.findById(supplierID);
     if (!supplier) {
-      return res.status(400).json({ error: 'Invalid supplier ID' });
+      return res.status(404).json({ error: 'Supplier not found' });
     }
 
     // Generate slug

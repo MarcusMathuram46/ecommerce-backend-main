@@ -14,99 +14,129 @@ const sendEmail = require("./emailCtrl");
 const { concurrency } = require("sharp");
 
 // Create a User
-const createUser = asyncHandler(async (req, res) => {
-    const email = req.body.email;
-    const findUser = await User.findOne({ email: email });
-    if (!findUser) {
-        //create a new User
-        const newUser = await User.create(req.body);
-        res.json(newUser);
-    } else {
-        // user already Exists
-        throw new Error("User Already Exists");
-    }
-});
+// const createUser = async (req, res) => {
+//   try {
+//     const { firstName, lastName, email, password } = req.body;
 
-//  login for User
+//     // Check if required fields are present
+//     if (!firstName || !lastName || !email || !password) {
+//       return res.status(400).json({ success: false, message: "All fields are required." });
+//     }
+
+//     // Proceed with user registration
+//     const newUser = new User({
+//       firstName,
+//       lastName,
+//       email,
+//       password
+//     });
+
+//     // Save user to the database
+//     await newUser.save();
+
+//     res.status(201).json({ success: true, message: "User registered successfully." });
+//   } catch (error) {
+//     console.error("Error registering user:", error);
+//     res.status(500).json({ success: false, message: "Server error: " + error.message });
+//   }
+// };
+const createUser = asyncHandler(async (req, res) => {
+  const email = req.body.email;
+  const findUser = await User.findOne({ email: email });
+  if (!findUser) {
+      // create a new user
+      const newUser = await User.create(req.body);
+      res.json(newUser);
+  } else {
+      throw new Error("Tài khoản đã tồn tại trong hệ thống"); // thẩy thông báo lỗi cho express-async-handler, để xử lý ở middlewares chung
+  }
+})
+
+// Login user
+
 const loginUserCtrl = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
-    // check if user exists or not
-    const findUser = await User.findOne({ email });
-    if (findUser && (await findUser.isPasswordMatched(password))) {
+  const { email, password } = req.body;
+  // check if user exist or not
+  const findUser = await User.findOne({ email });
+  if (findUser && await findUser.isPasswordMatched(password)) {
       const refreshToken = await generateRefreshToken(findUser?._id);
       const updateuser = await User.findByIdAndUpdate(
-        findUser.id,
-        {
-          refreshToken: refreshToken,
-        },
-        { new: true }
+          findUser?._id,
+          {
+              refreshToken: refreshToken,
+          },
+          { new: true }
       );
-      res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        maxAge: 72 * 60 * 60 * 1000,
+      res.cookie("refreshToken", refreshToken, { // luu len server xong mới phản hồi về client
+          httpOnly: true, // chi truy cap duoc = HTTP, khong truy cap duoc = JAVASCRIPT
+          maxAge: 72 * 60 * 60 * 1000, // time exists token, don vi milisecond
       });
       res.json({
-        _id: findUser?._id,
-        firstname: findUser?.firstname,
-        lastname: findUser?.lastname,
-        email: findUser?.email,
-        mobile: findUser?.mobile,
-        token: generateToken(findUser?._id),
-      });
-    } else {
-      console.error("Error: Invalid Credentials", error);
+          _id: findUser?._id,
+          firstName: findUser?.firstName,
+          lastName: findUser?.lastName,
+          email: findUser?.email,
+          mobile: findUser?.mobile,
+          address: findUser?.address,
+          city: findUser?.city,
+          isBlocked: findUser?.isBlocked,
+          token: generateToken(findUser?._id),
+          refreshToken: refreshToken,
+      })
+  } else {
+      throw new Error("Incorrect information");
+  }
+})
 
-    }
-  });
-
-// admin Login
+// admin login
 
 const loginAdmin = asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
-    // check if user exists or not
-    const findAdmin = await User.findOne({ email });
-    if (findAdmin.role !== "admin") throw new Error("Not Authorised");
-    if (findAdmin && (await findAdmin.isPasswordMatched(password))) {
+  const { email, password } = req.body;
+  // check if user exists or not
+  const findAdmin = await User.findOne({ email });
+  if (findAdmin.role !== "admin") throw new Error("Not Authorised");
+  if (findAdmin && (await findAdmin.isPasswordMatched(password))) {
       const refreshToken = await generateRefreshToken(findAdmin?._id);
       const updateuser = await User.findByIdAndUpdate(
-        findAdmin.id,
-        {
-          refreshToken: refreshToken,
-        },
-        { new: true }
+          findAdmin?._id,
+          {
+              refreshToken: refreshToken,
+          },
+          { new: true }
       );
       res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
-        maxAge: 72 * 60 * 60 * 1000,
+          httpOnly: true,
+          maxAge: 72 * 60 * 60 * 1000,
       });
       res.json({
-        _id: findAdmin?._id,
-        firstname: findAdmin?.firstname,
-        lastname: findAdmin?.lastname,
-        email: findAdmin?.email,
-        mobile: findAdmin?.mobile,
-        token: generateToken(findAdmin?._id),
+          _id: findAdmin?._id,
+          firstName: findAdmin?.firstName,
+          lastName: findAdmin?.lastName,
+          email: findAdmin?.email,
+          mobile: findAdmin?.mobile,
+          token: generateToken(findAdmin?._id),
+          refreshToken: refreshToken,
       });
-    } else {
-      throw new Error("Invalid Credentials");
-    }
-  });
+  } else {
+      throw new Error("Incorrect information");
+  }
+});
+
 
 // Handle a Refresh Token
 
-const handleRefreshToken = asyncHandler(async (req, res) => {
-    const cookie = req.cookies;
-    if (!cookie?.refreshToken) throw new Error ("No Refresh Token in Cookies");
-    const refreshToken = cookie.refreshToken;
-    const user = await User.findOne({ refreshToken });
-    if (!user) throw new Error (" No Refresh Token in db or not matched");
-    jwt.verify(refreshToken, process.env.JWT_SECRET,(err, decoded) => {
-        if (err || user.id !== decoded.id) {
-            throw new Error("There is something wrong with refresh token");
-        }
-        const accessToken = generateToken(user?._id)
-        res.json({ accessToken });
-    });
+const handleRefreshToken = asyncHandler(async (req, res) => { 
+  const { refreshToken } = req.body;
+  if (!refreshToken) throw new Error("No Refresh Token")
+  const user = await User.findOne({ refreshToken });
+  if (!user) throw new Error(" No Refresh token present in db or not matched");
+  jwt.verify(refreshToken, process.env.JWT_SECRET, (err, decoded) => {
+      if (err || user.id !== decoded.id) {
+          throw new Error("There is something wrong with refresh token");
+      }
+      const accessToken = generateToken(user?._id);
+      res.json({ accessToken });
+  });
 });
 
 // Logout Functionality 
