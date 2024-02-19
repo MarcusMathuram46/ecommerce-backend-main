@@ -71,12 +71,6 @@ var productSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    images: [
-      {
-        public_id: String,
-        url: String,
-      },
-    ],
     ratings: [
       {
         star: Number,
