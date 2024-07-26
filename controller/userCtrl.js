@@ -48,7 +48,7 @@ const createUser = asyncHandler(async (req, res) => {
       const newUser = await User.create(req.body);
       res.json(newUser);
   } else {
-      throw new Error("Tài khoản đã tồn tại trong hệ thống"); // thẩy thông báo lỗi cho express-async-handler, để xử lý ở middlewares chung
+      throw new Error("Tài khoản đã tồn tại trong hệ thống");
   }
 })
 
@@ -67,9 +67,9 @@ const loginUserCtrl = asyncHandler(async (req, res) => {
           },
           { new: true }
       );
-      res.cookie("refreshToken", refreshToken, { // luu len server xong mới phản hồi về client
-          httpOnly: true, // chi truy cap duoc = HTTP, khong truy cap duoc = JAVASCRIPT
-          maxAge: 72 * 60 * 60 * 1000, // time exists token, don vi milisecond
+      res.cookie("refreshToken", refreshToken, { 
+          httpOnly: true, 
+          maxAge: 72 * 60 * 60 * 1000, 
       });
       res.json({
           _id: findUser?._id,
