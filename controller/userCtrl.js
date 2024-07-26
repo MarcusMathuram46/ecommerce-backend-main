@@ -48,7 +48,7 @@ const createUser = asyncHandler(async (req, res) => {
       const newUser = await User.create(req.body);
       res.json(newUser);
   } else {
-      throw new Error("Tài khoản đã tồn tại trong hệ thống");
+      throw new Error("The account already exists in the system.");
   }
 })
 
